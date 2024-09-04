@@ -145,7 +145,7 @@ export class StageProcessor {
     return false;
   }
 
-  private async diffStack(stack: StackInfo): Promise<{comment: string[]; changes: number}> {
+  private async diffStack(stack: StackInfo): Promise<{ comment: string[]; changes: number }> {
     try {
       const stackDiff = new StackDiff(stack, this.allowedDestroyTypes);
       const { diff, changes } = await stackDiff.diffStack();
@@ -179,9 +179,9 @@ export class StageProcessor {
       return output;
     }
     output.push(...[
-      `#### Diff for stack: ${stackName} - `+
-        `***${changes.createdResources} to add, ${changes.updatedResources} to update, ${changes.removedResources} to destroy***  `+
-        emoji,
+      `#### Diff for stack: ${stackName} - ` +
+      `***${changes.createdResources} to add, ${changes.updatedResources} to update, ${changes.removedResources} to destroy***  ` +
+      emoji,
       '<details><summary>Details</summary>',
       '',
     ]);
@@ -218,7 +218,13 @@ export class StageProcessor {
     if (!comment.length) {
       return output;
     }
+
+    // Fetch account information from the stack info
+    const stackInfo = this.stages.find(stage => stage.name === stageName)?.stacks.find(stack => stack.name === stackName);
+    const accountInfo = stackInfo ? `Account: ${stackInfo.account}, Region: ${stackInfo.region}` : 'Account information not available';
+
     output.push(`### Diff for stack: ${stageName} / ${stackName}`);
+    output.push(`*${accountInfo}*`);
 
     return output.concat(comment);
   }
@@ -226,11 +232,17 @@ export class StageProcessor {
   private getCommentForStage(stageName: string): string[] {
     const output: string[] = [];
     const stageComments = this.stageComments[stageName];
-    const comments = Object.values(this.stageComments[stageName].stackComments).flatMap(x => x);
+    const comments = Object.values(stageComments.stackComments).flatMap(x => x);
     if (!comments.length) {
       return output;
     }
+
+    // Fetch account information from one of the stacks (assuming they are the same for the stage)
+    const stackInfo = this.stages.find(stage => stage.name === stageName)?.stacks[0];
+    const accountInfo = stackInfo ? `Account: ${stackInfo.account}, Region: ${stackInfo.region}` : 'Account information not available';
+
     output.push(`### Diff for stage: ${stageName}`);
+    output.push(`*${accountInfo}*`);
 
     if (stageComments.destructiveChanges) {
       output.push(`> [!WARNING]\n> ${stageComments.destructiveChanges} Destructive Changes`);
